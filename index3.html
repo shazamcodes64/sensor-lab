@@ -1,0 +1,815 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Sensor Logic Simulator</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Inter:wght@400;500;600;700;800&display=swap');
+*{margin:0;padding:0;box-sizing:border-box;}
+:root{
+  --bg:#06101e;--bg2:#0c1a2e;--bg3:#112038;
+  --border:#1a3050;--border2:#254570;
+  --cyan:#00d4ff;--green:#00e87a;--red:#ff4455;
+  --orange:#ff8c42;--dim:#4a6a8a;--text:#cce0f5;
+  --mono:'JetBrains Mono',monospace;--sans:'Inter',sans-serif;
+}
+body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:100vh;overflow-x:hidden;}
+
+/* ── SCREENS ── */
+.scr{display:none;min-height:100vh;flex-direction:column;}
+.scr.on{display:flex;animation:up .4s cubic-bezier(.16,1,.3,1) both;}
+@keyframes up{from{opacity:0;transform:translateY(20px);}to{opacity:1;transform:translateY(0);}}
+
+/* ── TOPBAR ── */
+.bar{display:flex;align-items:center;justify-content:space-between;
+  padding:14px 28px;border-bottom:1px solid var(--border);
+  background:rgba(6,16,30,.96);position:sticky;top:0;z-index:99;backdrop-filter:blur(8px);}
+.bar-logo{font-family:var(--mono);font-size:13px;font-weight:700;color:var(--cyan);letter-spacing:2px;}
+.bar-logo span{color:var(--dim);}
+.bar-score{font-family:var(--mono);font-size:12px;background:var(--bg3);
+  border:1px solid var(--border);padding:6px 18px;border-radius:20px;color:var(--cyan);}
+
+/* ══════════════════════════════════════
+   HOME
+══════════════════════════════════════ */
+#home{align-items:center;justify-content:center;padding:40px 20px;text-align:center;}
+.home-eyebrow{font-family:var(--mono);font-size:10px;letter-spacing:6px;color:var(--cyan);opacity:.65;margin-bottom:18px;}
+.home-h1{font-family:var(--mono);font-size:clamp(2rem,5vw,3.2rem);font-weight:700;color:#fff;
+  letter-spacing:2px;line-height:1.15;margin-bottom:10px;}
+.home-h1 em{color:var(--cyan);font-style:normal;}
+.home-sub{font-size:15px;color:var(--dim);max-width:520px;line-height:1.75;margin-bottom:44px;}
+.home-start{font-family:var(--mono);font-size:13px;font-weight:700;letter-spacing:3px;
+  padding:17px 52px;border-radius:10px;border:1px solid var(--cyan);
+  background:rgba(0,212,255,.07);color:var(--cyan);cursor:pointer;transition:all .25s;}
+.home-start:hover{box-shadow:0 0 32px rgba(0,212,255,.22);transform:translateY(-2px);}
+.home-topics{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;max-width:680px;margin-top:52px;}
+@media(max-width:580px){.home-topics{grid-template-columns:1fr;}}
+.topic-chip{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:18px 14px;text-align:left;}
+.tc-icon{font-size:22px;margin-bottom:8px;}
+.tc-name{font-family:var(--mono);font-size:10px;letter-spacing:3px;margin-bottom:5px;}
+.tc-lcd .tc-name{color:var(--cyan);}
+.tc-prox .tc-name{color:var(--green);}
+.tc-ir .tc-name{color:var(--orange);}
+.tc-desc{font-size:12px;color:var(--dim);line-height:1.6;}
+
+/* ══════════════════════════════════════
+   GAME LAYOUT
+══════════════════════════════════════ */
+#game{padding:0;}
+.game-grid{display:grid;grid-template-columns:1fr 1fr;min-height:calc(100vh - 53px);}
+@media(max-width:860px){.game-grid{grid-template-columns:1fr;}}
+.left{padding:26px;border-right:1px solid var(--border);display:flex;flex-direction:column;gap:18px;overflow-y:auto;}
+.right{padding:26px;display:flex;flex-direction:column;gap:18px;overflow-y:auto;}
+
+/* section label */
+.slbl{font-family:var(--mono);font-size:9px;letter-spacing:5px;color:var(--dim);
+  display:flex;align-items:center;gap:8px;margin-bottom:10px;}
+.slbl::after{content:'';flex:1;height:1px;background:var(--border);}
+
+/* ── SCENARIO CARD ── */
+.scen-card{background:var(--bg2);border:1px solid var(--border2);border-radius:12px;padding:22px;}
+.scen-meta{font-family:var(--mono);font-size:9px;letter-spacing:4px;color:var(--dim);margin-bottom:8px;display:flex;justify-content:space-between;}
+.scen-text{font-size:19px;font-weight:700;color:#fff;line-height:1.45;margin-bottom:12px;}
+.scen-ctx{font-size:13px;color:var(--dim);line-height:1.75;border-left:2px solid var(--border2);padding-left:12px;}
+.prog-dots{display:flex;gap:6px;margin-top:16px;}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--border);transition:all .3s;}
+.dot.done{background:var(--green);}
+.dot.now{background:var(--cyan);box-shadow:0 0 8px var(--cyan);}
+
+/* ── SELECTOR ── */
+.sel-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;}
+.sel-btn{background:var(--bg3);border:1px solid var(--border);border-radius:9px;
+  padding:14px 8px;cursor:pointer;text-align:center;transition:all .2s;position:relative;}
+.sel-btn:hover{border-color:var(--border2);}
+.sel-btn.picked-sensor{border-color:var(--cyan);background:rgba(0,212,255,.07);box-shadow:0 0 14px rgba(0,212,255,.1);}
+.sel-btn.picked-action{border-color:var(--green);background:rgba(0,232,122,.07);box-shadow:0 0 14px rgba(0,232,122,.1);}
+.sel-dot{position:absolute;top:6px;right:6px;width:7px;height:7px;border-radius:50%;display:none;}
+.sel-btn.picked-sensor .sel-dot{display:block;background:var(--cyan);box-shadow:0 0 5px var(--cyan);}
+.sel-btn.picked-action .sel-dot{display:block;background:var(--green);box-shadow:0 0 5px var(--green);}
+.sel-icon{font-size:22px;display:block;margin-bottom:6px;}
+.sel-name{font-family:var(--mono);font-size:10px;letter-spacing:1px;color:var(--text);}
+.sel-sub{font-size:10px;color:var(--dim);margin-top:3px;}
+
+/* ── PIPELINE ── */
+.pipeline{background:var(--bg3);border:1px solid var(--border);border-radius:12px;
+  padding:16px;display:flex;align-items:center;gap:4px;}
+.pnode{flex:1;border-radius:8px;padding:12px 6px;text-align:center;min-height:68px;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;transition:all .3s;}
+.pnode.empty{background:rgba(255,255,255,.02);border:1px dashed var(--border);}
+.pnode.inp{background:rgba(0,212,255,.07);border:1px solid rgba(0,212,255,.25);}
+.pnode.out{background:rgba(0,232,122,.07);border:1px solid rgba(0,232,122,.25);}
+.pnode-icon{font-size:18px;}
+.pnode-lbl{font-family:var(--mono);font-size:8px;letter-spacing:2px;color:var(--dim);}
+.pnode-val{font-family:var(--mono);font-size:10px;font-weight:700;}
+.pnode.inp .pnode-val{color:var(--cyan);}
+.pnode.out .pnode-val{color:var(--green);}
+.pmid{flex:1;border-radius:8px;padding:12px 6px;text-align:center;min-height:68px;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;
+  background:rgba(168,85,247,.06);border:1px solid rgba(168,85,247,.2);}
+.pmid-lbl{font-family:var(--mono);font-size:8px;letter-spacing:2px;color:#a855f7;}
+.pmid-val{font-family:var(--mono);font-size:10px;font-weight:700;color:#a855f7;}
+.parr{font-size:16px;color:var(--border2);padding:0 2px;flex-shrink:0;}
+
+/* ── RUN BTN ── */
+.run-btn{font-family:var(--mono);font-size:13px;font-weight:700;letter-spacing:3px;
+  padding:15px;border-radius:10px;border:1px solid rgba(0,212,255,.4);
+  background:rgba(0,212,255,.07);color:var(--cyan);cursor:pointer;width:100%;transition:all .25s;}
+.run-btn:hover:not(:disabled){box-shadow:0 0 24px rgba(0,212,255,.18);transform:translateY(-1px);}
+.run-btn:disabled{opacity:.28;cursor:not-allowed;}
+
+/* ── RESULT ── */
+.result{border-radius:12px;padding:20px;display:none;animation:up .35s ease both;}
+.result.ok{background:rgba(0,232,122,.05);border:1px solid rgba(0,232,122,.28);}
+.result.err{background:rgba(255,68,85,.05);border:1px solid rgba(255,68,85,.28);}
+.res-hdr{display:flex;align-items:center;gap:12px;margin-bottom:12px;}
+.res-ico{font-size:26px;}
+.res-status{font-family:var(--mono);font-size:15px;font-weight:700;letter-spacing:2px;}
+.result.ok .res-status{color:var(--green);}
+.result.err .res-status{color:var(--red);}
+.res-exp{font-size:14px;color:var(--text);line-height:1.8;margin-bottom:12px;}
+.res-code{font-family:var(--mono);font-size:11px;background:rgba(0,0,0,.35);border-radius:8px;
+  padding:14px;color:var(--dim);line-height:1.85;border-left:3px solid;}
+.result.ok .res-code{border-color:var(--green);}
+.result.err .res-code{border-color:var(--red);}
+.wow-box{background:rgba(0,212,255,.04);border:1px solid rgba(0,212,255,.18);border-radius:8px;
+  padding:12px;margin-top:12px;}
+.wow-lbl{font-family:var(--mono);font-size:8px;letter-spacing:4px;color:var(--cyan);margin-bottom:5px;}
+.wow-txt{font-size:13px;color:var(--text);line-height:1.7;}
+.next-btn{font-family:var(--mono);font-size:11px;font-weight:700;letter-spacing:3px;
+  padding:13px;border-radius:8px;border:1px solid var(--green);
+  background:rgba(0,232,122,.07);color:var(--green);cursor:pointer;width:100%;margin-top:12px;transition:all .25s;}
+.next-btn:hover{box-shadow:0 0 18px rgba(0,232,122,.18);}
+</style>
+<style>
+/* ══════════════════════════════════════
+   MINI SIMULATIONS
+══════════════════════════════════════ */
+.sim-wrap{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:18px;}
+.sim-title{font-family:var(--mono);font-size:9px;letter-spacing:4px;color:var(--dim);margin-bottom:14px;}
+.sim-vp{background:#020810;border-radius:10px;height:150px;position:relative;overflow:hidden;
+  border:1px solid var(--border);display:flex;align-items:center;justify-content:center;}
+
+/* LCD sim */
+.lcd-layers{display:flex;flex-direction:column;align-items:center;gap:10px;width:100%;}
+.lcd-screen{width:200px;height:72px;border-radius:8px;border:2px solid #1a3a5c;
+  display:flex;align-items:center;justify-content:center;transition:all .5s;
+  font-family:var(--mono);font-size:12px;font-weight:700;letter-spacing:2px;}
+.lcd-screen.bright{background:#dff5ff;color:#003344;box-shadow:0 0 28px rgba(180,240,255,.55);}
+.lcd-screen.dark{background:#020810;color:#1a3a5c;}
+.lcd-tog-row{display:flex;align-items:center;gap:14px;}
+.tog-lbl{font-family:var(--mono);font-size:9px;letter-spacing:3px;color:var(--dim);}
+.sw{position:relative;width:50px;height:26px;cursor:pointer;}
+.sw input{opacity:0;width:0;height:0;}
+.sw-sl{position:absolute;inset:0;background:#0a1628;border:1px solid #1a3a5c;border-radius:26px;transition:.3s;}
+.sw-sl::before{content:'';position:absolute;height:20px;width:20px;left:2px;bottom:2px;background:#4a6a8a;border-radius:50%;transition:.3s;}
+.sw input:checked+.sw-sl{background:rgba(0,212,255,.14);border-color:var(--cyan);}
+.sw input:checked+.sw-sl::before{transform:translateX(24px);background:var(--cyan);box-shadow:0 0 10px var(--cyan);}
+.sw-state{font-family:var(--mono);font-size:13px;font-weight:700;letter-spacing:2px;min-width:32px;transition:all .3s;}
+.sw-state.on{color:var(--cyan);text-shadow:0 0 8px var(--cyan);}
+.sw-state.off{color:var(--dim);}
+.lcd-desc{font-size:11px;color:var(--dim);text-align:center;margin-top:8px;letter-spacing:1px;min-height:16px;}
+
+/* Proximity sim */
+.prox-vp{position:relative;width:100%;height:100%;}
+.prox-sensor{position:absolute;right:18px;top:50%;transform:translateY(-50%);font-size:26px;z-index:2;}
+.prox-obj{position:absolute;top:50%;transform:translateY(-50%);font-size:22px;transition:left .08s;z-index:2;}
+.prox-ring{position:absolute;right:18px;top:50%;transform:translate(50%,-50%);
+  border-radius:50%;border:1px dashed;pointer-events:none;transition:border-color .3s;}
+.prox-lbl{position:absolute;bottom:8px;left:50%;transform:translateX(-50%);
+  font-family:var(--mono);font-size:9px;letter-spacing:2px;white-space:nowrap;transition:color .3s;}
+.prox-ctrl{margin-top:10px;}
+.prox-ctrl .row{display:flex;justify-content:space-between;font-family:var(--mono);font-size:9px;letter-spacing:3px;color:var(--dim);margin-bottom:6px;}
+input[type=range]{width:100%;accent-color:var(--cyan);cursor:pointer;height:4px;}
+.prox-readout{display:flex;justify-content:space-between;align-items:center;margin-top:10px;}
+.dist-val{font-family:var(--mono);font-size:2rem;font-weight:700;color:var(--cyan);line-height:1;}
+.dist-unit{font-family:var(--mono);font-size:9px;color:var(--dim);letter-spacing:2px;margin-top:3px;}
+.det-badge{font-family:var(--mono);font-size:10px;letter-spacing:2px;font-weight:700;
+  padding:8px 16px;border-radius:16px;border:1px solid var(--border);color:var(--dim);transition:all .3s;}
+.det-badge.yes{background:rgba(0,232,122,.1);border-color:var(--green);color:var(--green);
+  box-shadow:0 0 18px rgba(0,232,122,.25);animation:pulse 1.2s ease-in-out infinite;}
+@keyframes pulse{0%,100%{opacity:1;}50%{opacity:.6;}}
+
+/* IR sim */
+.ir-vp{display:flex;align-items:center;justify-content:space-between;padding:0 20px;width:100%;height:100%;position:relative;}
+.ir-dev{display:flex;flex-direction:column;align-items:center;gap:6px;}
+.ir-box{width:42px;height:58px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:20px;transition:all .3s;}
+.ir-lbl{font-family:var(--mono);font-size:8px;letter-spacing:2px;color:var(--dim);}
+.ir-track{flex:1;height:4px;position:relative;margin:0 8px;}
+.ir-fill{height:100%;width:0;border-radius:2px;position:absolute;top:0;left:0;}
+.ir-ctrl{display:flex;flex-direction:column;align-items:center;gap:10px;margin-top:10px;}
+.ir-fire{font-family:var(--mono);font-size:11px;letter-spacing:2px;padding:11px 28px;
+  border-radius:7px;border:1px solid var(--orange);background:rgba(255,140,66,.07);
+  color:var(--orange);cursor:pointer;transition:all .2s;width:100%;}
+.ir-fire:hover{box-shadow:0 0 16px rgba(255,140,66,.22);}
+.ir-fire:disabled{opacity:.3;cursor:not-allowed;}
+.ir-status{font-family:var(--mono);font-size:10px;letter-spacing:2px;color:var(--dim);text-align:center;min-height:16px;transition:color .3s;}
+.ir-status.go{color:var(--green);}
+
+/* ── SENSOR REFERENCE ── */
+.ref-card{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:18px;display:flex;flex-direction:column;gap:14px;}
+.ref-item{border-left:2px solid;padding-left:12px;}
+.ref-item.lcd{border-color:var(--cyan);}
+.ref-item.prox{border-color:var(--green);}
+.ref-item.ir{border-color:var(--orange);}
+.ref-name{font-family:var(--mono);font-size:9px;letter-spacing:3px;margin-bottom:4px;}
+.ref-item.lcd .ref-name{color:var(--cyan);}
+.ref-item.prox .ref-name{color:var(--green);}
+.ref-item.ir .ref-name{color:var(--orange);}
+.ref-text{font-size:12px;color:var(--dim);line-height:1.65;}
+
+/* ══════════════════════════════════════
+   FINAL SCREEN
+══════════════════════════════════════ */
+#final{align-items:center;justify-content:center;padding:40px 20px;text-align:center;}
+.final-card{background:var(--bg2);border:1px solid var(--border2);border-radius:18px;padding:44px 52px;max-width:520px;width:100%;}
+.final-eyebrow{font-family:var(--mono);font-size:9px;letter-spacing:5px;color:var(--dim);margin-bottom:14px;}
+.final-score{font-family:var(--mono);font-size:5rem;font-weight:700;color:var(--cyan);
+  text-shadow:0 0 28px rgba(0,212,255,.35);line-height:1;}
+.final-denom{font-family:var(--mono);font-size:1.1rem;color:var(--dim);margin-bottom:20px;}
+.final-msg{font-size:15px;color:var(--text);line-height:1.75;margin-bottom:28px;}
+.replay-btn{font-family:var(--mono);font-size:11px;font-weight:700;letter-spacing:3px;
+  padding:13px 40px;border-radius:8px;border:1px solid var(--cyan);
+  background:rgba(0,212,255,.07);color:var(--cyan);cursor:pointer;transition:all .25s;}
+.replay-btn:hover{box-shadow:0 0 22px rgba(0,212,255,.2);}
+.breakdown{margin-top:26px;text-align:left;border-top:1px solid var(--border);padding-top:18px;}
+.bd-hdr{font-family:var(--mono);font-size:9px;letter-spacing:4px;color:var(--dim);margin-bottom:10px;}
+.bd-row{display:flex;justify-content:space-between;align-items:center;padding:8px 0;
+  border-bottom:1px solid var(--border);font-size:13px;color:var(--dim);}
+.bd-row:last-child{border-bottom:none;}
+.bd-tag{font-family:var(--mono);font-size:10px;font-weight:700;}
+.bd-tag.ok{color:var(--green);}
+.bd-tag.fail{color:var(--red);}
+</style>
+</head>
+<body>
+
+<!-- ══ HOME ══ -->
+<div id="home" class="scr on">
+  <p class="home-eyebrow">BEEE · UNIT 4 · CLASSROOM DEMO</p>
+  <h1 class="home-h1">SENSOR<br><em>LOGIC</em><br>SIMULATOR</h1>
+  <p class="home-sub">Build real INPUT → PROCESS → OUTPUT systems for engineering scenarios. Validate your logic. Understand why sensors work the way they do.</p>
+  <button class="home-start" onclick="startGame()">▶ BEGIN SIMULATION</button>
+  <div class="home-topics">
+    <div class="topic-chip tc-lcd">
+      <div class="tc-icon">🖥️</div>
+      <div class="tc-name">LCD</div>
+      <div class="tc-desc">Liquid crystal display — blocks or passes light using voltage-controlled molecules</div>
+    </div>
+    <div class="topic-chip tc-prox">
+      <div class="tc-icon">📡</div>
+      <div class="tc-name">PROXIMITY SENSOR</div>
+      <div class="tc-desc">Detects objects without contact via EM fields, eddy currents, or capacitance</div>
+    </div>
+    <div class="topic-chip tc-ir">
+      <div class="tc-icon">🔴</div>
+      <div class="tc-name">IR SENSOR</div>
+      <div class="tc-desc">Emits and detects infrared radiation — active (LED+receiver) or passive (PIR)</div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ GAME ══ -->
+<div id="game" class="scr">
+  <div class="bar">
+    <div class="bar-logo">SENSOR<span>/</span>SIM</div>
+    <div class="bar-score">SCORE: <span id="scoreDisp">0</span></div>
+  </div>
+  <div class="game-grid">
+
+    <!-- LEFT PANEL -->
+    <div class="left">
+
+      <!-- Scenario -->
+      <div>
+        <div class="slbl">SCENARIO</div>
+        <div class="scen-card">
+          <div class="scen-meta">
+            <span id="scenNum">01 / 06</span>
+            <span id="scenType"></span>
+          </div>
+          <div class="scen-text" id="scenText">—</div>
+          <div class="scen-ctx" id="scenCtx">—</div>
+          <div class="prog-dots" id="progDots"></div>
+        </div>
+      </div>
+
+      <!-- Input selector -->
+      <div>
+        <div class="slbl">SELECT INPUT SENSOR</div>
+        <div class="sel-grid" id="inpGrid">
+          <div class="sel-btn" onclick="pick('inp','proximity')" id="i-proximity">
+            <div class="sel-dot"></div>
+            <span class="sel-icon">📡</span>
+            <div class="sel-name">PROXIMITY</div>
+            <div class="sel-sub">EM / Capacitive</div>
+          </div>
+          <div class="sel-btn" onclick="pick('inp','ir')" id="i-ir">
+            <div class="sel-dot"></div>
+            <span class="sel-icon">🔴</span>
+            <div class="sel-name">IR SENSOR</div>
+            <div class="sel-sub">Active / PIR</div>
+          </div>
+          <div class="sel-btn" onclick="pick('inp','none')" id="i-none">
+            <div class="sel-dot"></div>
+            <span class="sel-icon">⊘</span>
+            <div class="sel-name">NONE</div>
+            <div class="sel-sub">No sensor input</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Output selector -->
+      <div>
+        <div class="slbl">SELECT OUTPUT / ACTION</div>
+        <div class="sel-grid" id="outGrid">
+          <div class="sel-btn" onclick="pick('out','lcd')" id="o-lcd">
+            <div class="sel-dot"></div>
+            <span class="sel-icon">🖥️</span>
+            <div class="sel-name">LCD DISPLAY</div>
+            <div class="sel-sub">Visual output</div>
+          </div>
+          <div class="sel-btn" onclick="pick('out','action')" id="o-action">
+            <div class="sel-dot"></div>
+            <span class="sel-icon">⚡</span>
+            <div class="sel-name">SYSTEM ACTION</div>
+            <div class="sel-sub">Trigger / Control</div>
+          </div>
+          <div class="sel-btn" onclick="pick('out','none')" id="o-none">
+            <div class="sel-dot"></div>
+            <span class="sel-icon">⊘</span>
+            <div class="sel-name">NONE</div>
+            <div class="sel-sub">No output</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Pipeline -->
+      <div>
+        <div class="slbl">SYSTEM PIPELINE</div>
+        <div class="pipeline">
+          <div class="pnode empty" id="pIn">
+            <span class="pnode-icon">?</span>
+            <div class="pnode-lbl">INPUT</div>
+            <div class="pnode-val" id="pInV">—</div>
+          </div>
+          <div class="parr">→</div>
+          <div class="pmid">
+            <span style="font-size:15px">⚙️</span>
+            <div class="pmid-lbl">PROCESS</div>
+            <div class="pmid-val" id="pMidV">AWAITING</div>
+          </div>
+          <div class="parr">→</div>
+          <div class="pnode empty" id="pOut">
+            <span class="pnode-icon">?</span>
+            <div class="pnode-lbl">OUTPUT</div>
+            <div class="pnode-val" id="pOutV">—</div>
+          </div>
+        </div>
+      </div>
+
+      <button class="run-btn" id="runBtn" onclick="runSystem()" disabled>▶ RUN SYSTEM</button>
+
+      <!-- Result -->
+      <div class="result" id="resultBox">
+        <div class="res-hdr">
+          <span class="res-ico" id="resIco"></span>
+          <span class="res-status" id="resStat"></span>
+        </div>
+        <div class="res-exp" id="resExp"></div>
+        <div class="res-code" id="resCode"></div>
+        <div class="wow-box" id="wowBox" style="display:none">
+          <div class="wow-lbl">⚡ WOW INSIGHT</div>
+          <div class="wow-txt" id="wowTxt"></div>
+        </div>
+        <button class="next-btn" id="nextBtn" onclick="nextScenario()">NEXT SCENARIO →</button>
+      </div>
+
+    </div>
+
+    <!-- RIGHT PANEL -->
+    <div class="right">
+
+      <!-- LCD SIM -->
+      <div class="sim-wrap" id="simLCD" style="display:none">
+        <div class="sim-title">LCD — VOLTAGE CONTROL SIMULATION</div>
+        <div class="sim-vp">
+          <div class="lcd-layers">
+            <div class="lcd-screen bright" id="lcdScr">DISPLAY ON</div>
+            <div class="lcd-tog-row">
+              <span class="tog-lbl">VOLTAGE</span>
+              <label class="sw"><input type="checkbox" id="lcdSw" onchange="lcdToggle()"><span class="sw-sl"></span></label>
+              <span class="sw-state on" id="lcdSt">ON</span>
+            </div>
+          </div>
+        </div>
+        <div class="lcd-desc" id="lcdDesc">Voltage ON → crystals untwist → light passes → screen bright</div>
+      </div>
+
+      <!-- PROXIMITY SIM -->
+      <div class="sim-wrap" id="simProx" style="display:none">
+        <div class="sim-title">PROXIMITY SENSOR — DISTANCE DETECTION</div>
+        <div class="sim-vp">
+          <div class="prox-vp" id="proxVP">
+            <div class="prox-ring" id="pr1" style="width:110px;height:110px;margin-right:-55px;"></div>
+            <div class="prox-ring" id="pr2" style="width:72px;height:72px;margin-right:-36px;"></div>
+            <div class="prox-ring" id="pr3" style="width:38px;height:38px;margin-right:-19px;"></div>
+            <div class="prox-obj" id="proxObj" style="left:16px">📦</div>
+            <div class="prox-sensor">📡</div>
+            <div class="prox-lbl" id="proxLbl" style="color:var(--dim)">NOT DETECTED</div>
+          </div>
+        </div>
+        <div class="prox-ctrl">
+          <div class="row"><span>FAR</span><span>MOVE OBJECT</span><span>CLOSE</span></div>
+          <input type="range" id="proxSlider" min="0" max="100" value="5" oninput="proxMove(this.value)">
+        </div>
+        <div class="prox-readout">
+          <div><div class="dist-val" id="distVal">95</div><div class="dist-unit">UNITS AWAY</div></div>
+          <div class="det-badge" id="detBadge">● NOT DETECTED</div>
+        </div>
+      </div>
+
+      <!-- IR SIM -->
+      <div class="sim-wrap" id="simIR" style="display:none">
+        <div class="sim-title">IR SENSOR — SIGNAL TRANSMISSION</div>
+        <div class="sim-vp">
+          <div class="ir-vp">
+            <div class="ir-dev">
+              <div class="ir-box" id="irEm" style="background:rgba(255,140,66,.07);border:1px solid rgba(255,140,66,.3)">📤</div>
+              <div class="ir-lbl">EMITTER</div>
+            </div>
+            <div class="ir-track" id="irTrack">
+              <div class="ir-fill" id="irFill" style="background:linear-gradient(90deg,rgba(255,140,66,.9),rgba(255,140,66,.1))"></div>
+            </div>
+            <div class="ir-dev">
+              <div class="ir-box" id="irRec" style="background:rgba(0,212,255,.07);border:1px solid rgba(0,212,255,.3)">📥</div>
+              <div class="ir-lbl">RECEIVER</div>
+            </div>
+          </div>
+        </div>
+        <div class="ir-ctrl">
+          <button class="ir-fire" id="irBtn" onclick="fireIR()">⚡ EMIT IR SIGNAL</button>
+          <div class="ir-status" id="irStat">Ready — press to emit</div>
+        </div>
+      </div>
+
+      <!-- Sensor Reference -->
+      <div>
+        <div class="slbl">SENSOR REFERENCE</div>
+        <div class="ref-card">
+          <div class="ref-item lcd">
+            <div class="ref-name">LCD — LIQUID CRYSTAL DISPLAY</div>
+            <div class="ref-text">Output device only. Uses liquid crystals between polarizing filters. Voltage OFF → crystals twist → light passes → bright. Voltage ON → crystals untwist → light blocked → dark. Cannot detect anything.</div>
+          </div>
+          <div class="ref-item prox">
+            <div class="ref-name">PROXIMITY SENSOR</div>
+            <div class="ref-text">Detects objects without contact. Types: Inductive (metal, eddy currents), Capacitive (any material), Magnetic (reed contacts), Photoelectric (light beam). Used in phones, doors, parking, faucets.</div>
+          </div>
+          <div class="ref-item ir">
+            <div class="ref-name">IR SENSOR</div>
+            <div class="ref-text">Active IR: LED emitter + photodiode receiver. Detects by reflection. Passive IR (PIR): detects body heat. Used in remotes (38 kHz modulation), burglar alarms, thermometers, robots.</div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- ══ FINAL ══ -->
+<div id="final" class="scr">
+  <div class="final-card">
+    <div class="final-eyebrow">SIMULATION COMPLETE</div>
+    <div class="final-score" id="finalScore">0</div>
+    <div class="final-denom" id="finalDenom">/ 6 CORRECT</div>
+    <div class="final-msg" id="finalMsg"></div>
+    <button class="replay-btn" onclick="startGame()">↺ RUN AGAIN</button>
+    <div class="breakdown">
+      <div class="bd-hdr">SCENARIO BREAKDOWN</div>
+      <div id="bdList"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ══════════════════════════════════════════════════════════
+// SCENARIO DATA
+// ══════════════════════════════════════════════════════════
+const SCENARIOS = [
+  {
+    text: "Phone screen turns off during a call",
+    ctx: "When you lift the phone to your ear, the screen dims and touch input is disabled automatically — no button press required.",
+    type: "REAL-WORLD SYSTEM",
+    correctInp: "proximity",
+    correctOut: "action",
+    process: "IF face detected < 3 cm → disable screen + lock touch layer",
+    explanation: "A capacitive proximity sensor near the earpiece detects your face. The system action cuts power to the display and disables touch input. An IR sensor would not work reliably here — it cannot detect skin at that range without a dedicated emitter/receiver pair.",
+    wow: "Your phone's proximity sensor reacts in under 10 milliseconds — faster than you can blink.",
+    sim: "prox",
+    trick: false
+  },
+  {
+    text: "TV remote control system",
+    ctx: "Pressing a button on the remote sends a signal across the room. The TV receives it and changes the channel.",
+    type: "SIGNAL-BASED SYSTEM",
+    correctInp: "ir",
+    correctOut: "action",
+    process: "IF IR pulse received at 38 kHz → decode NEC/RC5 command → execute",
+    explanation: "The remote emits modulated infrared pulses at 38 kHz. The TV's active IR receiver decodes the signal and triggers the system action (channel change, volume, etc.). A proximity sensor cannot transmit encoded signals — it only detects presence.",
+    wow: "Point your TV remote at your phone camera and press a button — you'll see the IR LED flashing. Your eyes can't see it, but the camera sensor can.",
+    sim: "ir",
+    trick: false
+  },
+  {
+    text: "Hospital wall-mounted patient temperature display",
+    ctx: "A temperature reading from a sensor is shown on a small screen. The display must be always visible and low-power.",
+    type: "DISPLAY OUTPUT SYSTEM",
+    correctInp: "none",
+    correctOut: "lcd",
+    process: "Receive temperature data from MCU → render value on LCD panel",
+    explanation: "The LCD is the output device here. The input is a temperature sensor (not listed as an option). Selecting proximity or IR as input for a display-only task is a logic error — those sensors detect objects, not temperature.",
+    wow: "LCDs consume only microwatts for a static display — that's why digital watches can run for years on a tiny battery.",
+    sim: "lcd",
+    trick: false
+  },
+  {
+    text: "Automatic hand sanitizer dispenser",
+    ctx: "When a hand is placed under the nozzle, the pump activates and dispenses sanitizer — no button press required.",
+    type: "CONTACTLESS TRIGGER",
+    correctInp: "proximity",
+    correctOut: "action",
+    process: "IF object detected within 5 cm → trigger pump relay",
+    explanation: "A proximity sensor (capacitive or infrared reflective) detects the hand without contact. The system action triggers the pump relay. An LCD would only display — it cannot trigger the pump.",
+    wow: "Capacitive proximity sensors can detect a hand through a plastic casing — that's why the dispenser doesn't need a hole for the sensor.",
+    sim: "prox",
+    trick: false
+  },
+  {
+    text: "Parking sensor — car reversing toward a wall",
+    ctx: "As the car reverses, the system beeps faster as the distance to the wall decreases. The driver is warned before impact.",
+    type: "DISTANCE DETECTION",
+    correctInp: "proximity",
+    correctOut: "action",
+    process: "IF distance < threshold → increase beep frequency → IF distance < 20 cm → continuous alarm",
+    explanation: "Parking sensors use ultrasonic proximity sensors mounted on the bumper. They emit ultrasonic pulses and measure the echo return time to calculate distance. The system action is the audio alarm. IR sensors are used in some obstacle detection systems but ultrasonic proximity is the standard for parking.",
+    wow: "Ultrasonic proximity sensors work like bat echolocation — they emit a 40 kHz sound pulse and measure how long it takes to bounce back.",
+    sim: "prox",
+    trick: false
+  },
+  {
+    text: "⚠️ TRAP: A student claims — 'I'll use an LCD as the input sensor to detect when someone enters the room and trigger an alarm.'",
+    ctx: "The student's proposed system: LCD → detects person → triggers alarm. Is this a valid system design?",
+    type: "TRAP SCENARIO",
+    correctInp: "none",
+    correctOut: "none",
+    process: "INVALID — LCD has no detection capability whatsoever",
+    explanation: "This is a fundamental logic error. An LCD is a pure output device — it displays information but cannot sense, detect, or measure anything. The correct input for room entry detection would be a proximity sensor (capacitive/photoelectric) or a passive IR (PIR) sensor that detects body heat. The LCD could be used as the output to display an alert message.",
+    wow: "This is the most common misconception in sensor systems — confusing output devices with input sensors. Always ask: does this component measure something, or does it show something?",
+    sim: "prox",
+    trick: true
+  }
+];
+
+// ══════════════════════════════════════════════════════════
+// STATE
+// ══════════════════════════════════════════════════════════
+let G = { cur: 0, score: 0, results: [], inp: null, out: null, done: false };
+
+const META = {
+  proximity: { icon:'📡', name:'PROXIMITY' },
+  ir:        { icon:'🔴', name:'IR SENSOR' },
+  lcd:       { icon:'🖥️', name:'LCD DISPLAY' },
+  action:    { icon:'⚡', name:'SYSTEM ACTION' },
+  none:      { icon:'⊘', name:'NONE' }
+};
+
+// ══════════════════════════════════════════════════════════
+// NAVIGATION
+// ══════════════════════════════════════════════════════════
+function goTo(id) {
+  document.querySelectorAll('.scr').forEach(s => { s.classList.remove('on'); });
+  const el = document.getElementById(id);
+  el.classList.add('on');
+}
+
+function startGame() {
+  G = { cur: 0, score: 0, results: [], inp: null, out: null, done: false };
+  goTo('game');
+  loadScenario();
+}
+
+// ══════════════════════════════════════════════════════════
+// LOAD SCENARIO
+// ══════════════════════════════════════════════════════════
+function loadScenario() {
+  const s = SCENARIOS[G.cur];
+  G.inp = null; G.out = null; G.done = false;
+
+  document.getElementById('scenNum').textContent = `${String(G.cur+1).padStart(2,'0')} / ${SCENARIOS.length}`;
+  document.getElementById('scenType').textContent = s.type;
+  document.getElementById('scenText').textContent = s.text;
+  document.getElementById('scenCtx').textContent = s.ctx;
+  document.getElementById('scoreDisp').textContent = G.score;
+
+  // Progress dots
+  const pd = document.getElementById('progDots');
+  pd.innerHTML = '';
+  SCENARIOS.forEach((_, i) => {
+    const d = document.createElement('div');
+    d.className = 'dot' + (i < G.cur ? ' done' : i === G.cur ? ' now' : '');
+    pd.appendChild(d);
+  });
+
+  // Reset buttons
+  document.querySelectorAll('.sel-btn').forEach(b => b.className = 'sel-btn');
+  resetPipeline();
+  document.getElementById('runBtn').disabled = true;
+  document.getElementById('resultBox').style.display = 'none';
+
+  // Show correct sim
+  ['simLCD','simProx','simIR'].forEach(id => document.getElementById(id).style.display = 'none');
+  if (s.sim === 'lcd') document.getElementById('simLCD').style.display = 'block';
+  else if (s.sim === 'prox') document.getElementById('simProx').style.display = 'block';
+  else if (s.sim === 'ir') document.getElementById('simIR').style.display = 'block';
+}
+
+// ══════════════════════════════════════════════════════════
+// COMPONENT SELECTION
+// ══════════════════════════════════════════════════════════
+function pick(type, val) {
+  if (G.done) return;
+  if (type === 'inp') {
+    G.inp = val;
+    document.querySelectorAll('#inpGrid .sel-btn').forEach(b => b.className = 'sel-btn');
+    document.getElementById('i-' + val).className = 'sel-btn picked-sensor';
+    const n = document.getElementById('pIn');
+    n.className = 'pnode inp';
+    n.querySelector('.pnode-icon').textContent = META[val].icon;
+    document.getElementById('pInV').textContent = META[val].name;
+  } else {
+    G.out = val;
+    document.querySelectorAll('#outGrid .sel-btn').forEach(b => b.className = 'sel-btn');
+    document.getElementById('o-' + val).className = 'sel-btn picked-action';
+    const n = document.getElementById('pOut');
+    n.className = 'pnode out';
+    n.querySelector('.pnode-icon').textContent = META[val].icon;
+    document.getElementById('pOutV').textContent = META[val].name;
+  }
+  if (G.inp && G.out) {
+    document.getElementById('pMidV').textContent = 'READY';
+    document.getElementById('runBtn').disabled = false;
+  }
+}
+
+function resetPipeline() {
+  ['pIn','pOut'].forEach(id => {
+    const n = document.getElementById(id);
+    n.className = 'pnode empty';
+    n.querySelector('.pnode-icon').textContent = '?';
+  });
+  document.getElementById('pInV').textContent = '—';
+  document.getElementById('pOutV').textContent = '—';
+  document.getElementById('pMidV').textContent = 'AWAITING';
+}
+
+// ══════════════════════════════════════════════════════════
+// RUN SYSTEM
+// ══════════════════════════════════════════════════════════
+function runSystem() {
+  if (G.done) return;
+  G.done = true;
+  const s = SCENARIOS[G.cur];
+  const valid = (G.inp === s.correctInp && G.out === s.correctOut);
+  if (valid) G.score++;
+  G.results.push({ text: s.text, valid });
+  document.getElementById('pMidV').textContent = valid ? 'VALID ✓' : 'ERROR ✗';
+  document.getElementById('scoreDisp').textContent = G.score;
+
+  const box = document.getElementById('resultBox');
+  box.style.display = 'block';
+  box.className = 'result ' + (valid ? 'ok' : 'err');
+  document.getElementById('resIco').textContent = valid ? '✅' : '❌';
+  document.getElementById('resStat').textContent = valid ? 'SYSTEM VALID' : 'LOGIC ERROR';
+  document.getElementById('resExp').textContent = s.explanation;
+  document.getElementById('resCode').textContent =
+    `IF/THEN LOGIC:\n${s.process}\n\nYOUR BUILD:\nINPUT: ${META[G.inp].name}  →  OUTPUT: ${META[G.out].name}\n${valid ? '✓ Matches correct system design.' : '✗ Does not match. See explanation above.'}`;
+
+  const wb = document.getElementById('wowBox');
+  if (s.wow) {
+    wb.style.display = 'block';
+    document.getElementById('wowTxt').textContent = s.wow;
+  } else {
+    wb.style.display = 'none';
+  }
+
+  document.getElementById('runBtn').disabled = true;
+  document.getElementById('nextBtn').textContent =
+    G.cur >= SCENARIOS.length - 1 ? 'VIEW RESULTS →' : 'NEXT SCENARIO →';
+}
+
+// ══════════════════════════════════════════════════════════
+// NEXT / FINAL
+// ══════════════════════════════════════════════════════════
+function nextScenario() {
+  G.cur++;
+  if (G.cur >= SCENARIOS.length) showFinal();
+  else loadScenario();
+}
+
+function showFinal() {
+  goTo('final');
+  const s = G.score, t = SCENARIOS.length;
+  document.getElementById('finalScore').textContent = s;
+  document.getElementById('finalDenom').textContent = `/ ${t} CORRECT`;
+  const p = s / t;
+  document.getElementById('finalMsg').textContent =
+    p === 1 ? '🏆 Perfect. You understand sensor systems at an engineering level.' :
+    p >= 0.7 ? '🎯 Strong result. Review the scenarios you missed.' :
+    p >= 0.5 ? '📘 Good effort. Re-read the sensor reference and try again.' :
+    '🔧 Keep studying. Focus on which sensor type fits each use case.';
+  const list = document.getElementById('bdList');
+  list.innerHTML = '';
+  G.results.forEach((r, i) => {
+    const row = document.createElement('div');
+    row.className = 'bd-row';
+    row.innerHTML = `<span>${i+1}. ${r.text.substring(0,48)}${r.text.length>48?'…':''}</span><span class="bd-tag ${r.valid?'ok':'fail'}">${r.valid?'VALID':'ERROR'}</span>`;
+    list.appendChild(row);
+  });
+}
+
+// ══════════════════════════════════════════════════════════
+// LCD SIM
+// ══════════════════════════════════════════════════════════
+function lcdToggle() {
+  const on = document.getElementById('lcdSw').checked;
+  const scr = document.getElementById('lcdScr');
+  const st = document.getElementById('lcdSt');
+  const desc = document.getElementById('lcdDesc');
+  scr.className = 'lcd-screen ' + (on ? 'bright' : 'dark');
+  scr.textContent = on ? 'DISPLAY ON' : '';
+  st.textContent = on ? 'ON' : 'OFF';
+  st.className = 'sw-state ' + (on ? 'on' : 'off');
+  desc.textContent = on
+    ? 'Voltage ON → crystals untwist → light passes → screen bright'
+    : 'Voltage OFF → crystals aligned → light blocked → screen dark';
+}
+
+// ══════════════════════════════════════════════════════════
+// PROXIMITY SIM
+// ══════════════════════════════════════════════════════════
+function proxMove(v) {
+  v = parseInt(v);
+  const vp = document.getElementById('proxVP');
+  const obj = document.getElementById('proxObj');
+  const lbl = document.getElementById('proxLbl');
+  const badge = document.getElementById('detBadge');
+  const W = vp.offsetWidth || 280;
+  obj.style.left = Math.round(16 + (v / 100) * (W - 90)) + 'px';
+  document.getElementById('distVal').textContent = Math.round(100 - v);
+  const det = v > 72;
+  lbl.textContent = det ? '⚡ OBJECT DETECTED' : 'NOT DETECTED';
+  lbl.style.color = det ? 'var(--green)' : 'var(--dim)';
+  badge.textContent = det ? '● DETECTED' : '● NOT DETECTED';
+  badge.className = 'det-badge' + (det ? ' yes' : '');
+  const rings = [['pr1',0.12],['pr2',0.2],['pr3',0.35]];
+  rings.forEach(([id, base]) => {
+    document.getElementById(id).style.borderColor = `rgba(0,212,255,${base + (v/100)*0.4})`;
+  });
+}
+
+// ══════════════════════════════════════════════════════════
+// IR SIM
+// ══════════════════════════════════════════════════════════
+let irBusy = false;
+function fireIR() {
+  if (irBusy) return;
+  irBusy = true;
+  const btn = document.getElementById('irBtn');
+  const stat = document.getElementById('irStat');
+  const fill = document.getElementById('irFill');
+  const em = document.getElementById('irEm');
+  const rec = document.getElementById('irRec');
+  btn.disabled = true;
+  em.style.boxShadow = '0 0 18px rgba(255,140,66,.7)';
+  stat.textContent = 'Emitting IR beam at 38 kHz...';
+  stat.className = 'ir-status go';
+  fill.style.transition = 'none'; fill.style.width = '0%';
+  setTimeout(() => {
+    fill.style.transition = 'width .55s linear';
+    fill.style.width = '100%';
+    setTimeout(() => {
+      rec.style.boxShadow = '0 0 18px rgba(0,212,255,.7)';
+      stat.textContent = '✅ Signal received — object detected';
+      setTimeout(() => {
+        fill.style.transition = 'width .3s'; fill.style.width = '0%';
+        em.style.boxShadow = ''; rec.style.boxShadow = '';
+        stat.textContent = 'Ready — press to emit';
+        stat.className = 'ir-status';
+        btn.disabled = false; irBusy = false;
+      }, 1600);
+    }, 580);
+  }, 40);
+}
+</script>
+</body>
+</html>
