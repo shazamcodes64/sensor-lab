@@ -2,15 +2,7 @@
 
 An interactive browser-based presentation covering **LCD**, **Proximity Sensor**, and **IR Sensor** for BEEE Unit 4.
 
-Built to replace traditional PowerPoint slides with live 3D simulations, real-time interactions, and logic-based games.
-
-## Pages
-
-| File | Description |
-|------|-------------|
-| `index.html` | **Sensor Explorer** — 3D interactive modules for each sensor with live simulations (Three.js) |
-| `index2.html` | **System Simulator** — Build INPUT → PROCESS → OUTPUT pipelines for real-world scenarios |
-| `index3.html` | **Sensor Logic Simulator** — Engineering-style game with trap scenarios and live mini sims |
+Built to replace traditional PowerPoint slides with live 3D simulations and real-time interactions.
 
 ## Topics Covered
 
@@ -21,20 +13,20 @@ Built to replace traditional PowerPoint slides with live 3D simulations, real-ti
 ## How to Run
 
 1. Download or clone this repo
-2. Open any `.html` file directly in a browser (Chrome recommended)
-3. No server, no install, no internet required (except for font loading on first open)
+2. Open `index.html` in a browser (Chrome recommended)
+3. No server, no install, no internet required (except for font/Three.js CDN on first open)
 
 ## How to Present
 
-1. Open `index.html` — walk through each sensor module, toggle the 3D simulations live
-2. Open `index3.html` — run the logic simulator as a class activity, let students vote before clicking "Run System"
-3. Use the trap scenario (LCD as input sensor) to spark discussion
+1. Open the home screen — pick a sensor module
+2. Walk through each module, toggle the 3D simulations live
+3. Let students interact with the voltage toggle, proximity slider, and IR fire button
 
 ## Tech Stack
 
 - Vanilla HTML/CSS/JavaScript
 - Three.js r128 (CDN) for 3D simulations
-- Google Fonts (Orbitron, Inter, JetBrains Mono)
+- Google Fonts (Orbitron, Inter)
 - Zero frameworks, zero build step
 
 ## License
