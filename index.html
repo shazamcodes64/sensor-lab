@@ -1,0 +1,543 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Sensor Lab 🔬</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Inter:wght@400;600;800&display=swap');
+*{margin:0;padding:0;box-sizing:border-box;}
+:root{--c:#00f5ff;--g:#00ff88;--o:#ff6b35;--p:#bf5fff;}
+body{background:#030912;color:#e0f0ff;font-family:'Inter',sans-serif;overflow-x:hidden;min-height:100vh;}
+
+/* ── PAGES ── */
+.pg{display:none;min-height:100vh;}
+.pg.on{display:flex;flex-direction:column;align-items:center;justify-content:center;}
+.mod{display:none;min-height:100vh;flex-direction:column;padding:24px;}
+.mod.on{display:flex;animation:fadeUp .5s cubic-bezier(.16,1,.3,1) both;}
+@keyframes fadeUp{from{opacity:0;transform:translateY(32px);}to{opacity:1;transform:translateY(0);}}
+
+/* ── PARTICLE BG ── */
+#stars{position:fixed;inset:0;z-index:0;pointer-events:none;}
+
+/* ── HOME ── */
+#home{position:relative;z-index:1;text-align:center;padding:40px 20px;}
+.home-kicker{font-family:'Orbitron',monospace;font-size:11px;letter-spacing:8px;color:var(--c);opacity:.7;margin-bottom:20px;animation:fadeUp .6s ease both;}
+.home-h1{font-family:'Orbitron',monospace;font-size:clamp(3.5rem,10vw,7rem);font-weight:900;line-height:.95;margin-bottom:8px;
+  background:linear-gradient(135deg,#00f5ff 0%,#00ff88 35%,#bf5fff 65%,#ff6b35 100%);
+  background-size:300%;-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+  animation:fadeUp .6s .1s ease both,hueShift 6s linear infinite;}
+@keyframes hueShift{0%{background-position:0%}100%{background-position:300%}}
+.home-sub{font-size:16px;color:#5a7a9f;letter-spacing:4px;margin-bottom:60px;animation:fadeUp .6s .2s ease both;}
+
+/* ── SENSOR CARDS (home) ── */
+.card-row{display:flex;gap:24px;flex-wrap:wrap;justify-content:center;animation:fadeUp .6s .3s ease both;}
+.scard{
+  width:240px;padding:36px 24px;border-radius:20px;cursor:pointer;
+  position:relative;overflow:hidden;text-align:center;
+  border:1px solid rgba(255,255,255,.08);
+  background:rgba(255,255,255,.03);
+  backdrop-filter:blur(12px);
+  transition:transform .25s,box-shadow .25s;
+}
+.scard:hover{transform:translateY(-12px) scale(1.04);}
+.scard::before{content:'';position:absolute;inset:0;opacity:0;transition:opacity .3s;border-radius:20px;}
+.scard:hover::before{opacity:1;}
+.scard.lcd{border-color:rgba(0,245,255,.3);}
+.scard.lcd:hover{box-shadow:0 20px 60px rgba(0,245,255,.35),0 0 0 1px rgba(0,245,255,.2);}
+.scard.lcd::before{background:radial-gradient(ellipse at 50% 0%,rgba(0,245,255,.12),transparent 70%);}
+.scard.prox{border-color:rgba(0,255,136,.3);}
+.scard.prox:hover{box-shadow:0 20px 60px rgba(0,255,136,.35),0 0 0 1px rgba(0,255,136,.2);}
+.scard.prox::before{background:radial-gradient(ellipse at 50% 0%,rgba(0,255,136,.12),transparent 70%);}
+.scard.ir{border-color:rgba(255,107,53,.3);}
+.scard.ir:hover{box-shadow:0 20px 60px rgba(255,107,53,.35),0 0 0 1px rgba(255,107,53,.2);}
+.scard.ir::before{background:radial-gradient(ellipse at 50% 0%,rgba(255,107,53,.12),transparent 70%);}
+.scard-emoji{font-size:56px;display:block;margin-bottom:16px;filter:drop-shadow(0 0 16px currentColor);animation:float 3s ease-in-out infinite;}
+@keyframes float{0%,100%{transform:translateY(0);}50%{transform:translateY(-10px);}}
+.scard.lcd .scard-emoji{color:var(--c);}
+.scard.prox .scard-emoji{color:var(--g);}
+.scard.ir .scard-emoji{color:var(--o);}
+.scard-name{font-family:'Orbitron',monospace;font-size:1.1rem;font-weight:700;letter-spacing:2px;margin-bottom:8px;}
+.scard.lcd .scard-name{color:var(--c);}
+.scard.prox .scard-name{color:var(--g);}
+.scard.ir .scard-name{color:var(--o);}
+.scard-desc{font-size:12px;color:#5a7a9f;line-height:1.6;}
+.scard-tag{display:inline-block;margin-top:14px;font-size:9px;letter-spacing:3px;padding:4px 12px;border-radius:20px;font-weight:700;}
+.scard.lcd .scard-tag{background:rgba(0,245,255,.1);color:var(--c);border:1px solid rgba(0,245,255,.3);}
+.scard.prox .scard-tag{background:rgba(0,255,136,.1);color:var(--g);border:1px solid rgba(0,255,136,.3);}
+.scard.ir .scard-tag{background:rgba(255,107,53,.1);color:var(--o);border:1px solid rgba(255,107,53,.3);}
+
+/* ── MODULE HEADER ── */
+.mhdr{display:flex;align-items:center;gap:16px;margin-bottom:32px;position:relative;z-index:1;}
+.back-btn{font-family:'Orbitron',monospace;background:transparent;border:1px solid rgba(255,255,255,.1);
+  color:#5a7a9f;padding:10px 22px;border-radius:8px;cursor:pointer;font-size:11px;letter-spacing:3px;transition:all .2s;}
+.back-btn:hover{border-color:var(--c);color:var(--c);box-shadow:0 0 16px rgba(0,245,255,.2);}
+.mtitle{font-family:'Orbitron',monospace;font-size:clamp(1.6rem,4vw,2.8rem);font-weight:900;letter-spacing:3px;}
+
+/* ── TWO COL ── */
+.mcontent{display:grid;grid-template-columns:1fr 1fr;gap:28px;width:100%;max-width:1200px;margin:0 auto;flex:1;position:relative;z-index:1;}
+@media(max-width:820px){.mcontent{grid-template-columns:1fr;}}
+
+/* ── GLASS CARDS ── */
+.gc{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);border-radius:16px;padding:24px;backdrop-filter:blur(10px);margin-bottom:18px;transition:border-color .2s;}
+.gc:last-child{margin-bottom:0;}
+.gc-title{font-family:'Orbitron',monospace;font-size:9px;letter-spacing:5px;margin-bottom:14px;opacity:.7;}
+.gc p{font-size:14px;color:#c0d8f0;line-height:1.85;}
+.hl{font-weight:700;}
+.lcd-hl{color:var(--c);}
+.prox-hl{color:var(--g);}
+.ir-hl{color:var(--o);}
+
+/* ── FACT BOX ── */
+.fact{border-radius:12px;padding:16px;margin-top:14px;position:relative;overflow:hidden;}
+.fact-lcd{background:linear-gradient(135deg,rgba(0,245,255,.08),rgba(0,245,255,.02));border:1px solid rgba(0,245,255,.2);}
+.fact-prox{background:linear-gradient(135deg,rgba(0,255,136,.08),rgba(0,255,136,.02));border:1px solid rgba(0,255,136,.2);}
+.fact-ir{background:linear-gradient(135deg,rgba(255,107,53,.08),rgba(255,107,53,.02));border:1px solid rgba(255,107,53,.2);}
+.fact-lbl{font-size:9px;letter-spacing:4px;margin-bottom:6px;font-weight:700;}
+.fact-lcd .fact-lbl{color:var(--c);}
+.fact-prox .fact-lbl{color:var(--g);}
+.fact-ir .fact-lbl{color:var(--o);}
+.fact p{font-size:13px;color:#e0f0ff;margin:0;}
+
+/* ── KEY FACTS ── */
+.kf{list-style:none;margin-top:8px;}
+.kf li{padding:8px 0;border-bottom:1px solid rgba(255,255,255,.04);font-size:13px;color:#7a9bbf;display:flex;gap:10px;align-items:flex-start;}
+.kf li:last-child{border-bottom:none;}
+.kf li::before{content:'▸';flex-shrink:0;}
+.kf-lcd li::before{color:var(--c);}
+.kf-prox li::before{color:var(--g);}
+.kf-ir li::before{color:var(--o);}
+
+/* ── SIM BOX ── */
+.sim-box{background:#020810;border-radius:16px;height:300px;position:relative;overflow:hidden;margin-bottom:18px;border:1px solid rgba(255,255,255,.07);}
+.sim-box canvas{display:block;width:100%!important;height:100%!important;}
+.sim-tag{position:absolute;bottom:12px;left:50%;transform:translateX(-50%);
+  font-family:'Orbitron',monospace;font-size:9px;letter-spacing:3px;
+  background:rgba(2,8,16,.8);padding:5px 16px;border-radius:20px;pointer-events:none;white-space:nowrap;}
+
+/* ── LCD CONTROLS ── */
+.volt-wrap{display:flex;align-items:center;justify-content:center;gap:24px;margin-bottom:16px;}
+.volt-lbl{font-family:'Orbitron',monospace;font-size:11px;letter-spacing:3px;color:#5a7a9f;}
+.sw{position:relative;width:64px;height:32px;cursor:pointer;}
+.sw input{opacity:0;width:0;height:0;}
+.sw-sl{position:absolute;inset:0;background:#0a1628;border:1px solid #1a3a5c;border-radius:32px;transition:.3s;}
+.sw-sl::before{content:'';position:absolute;height:24px;width:24px;left:3px;bottom:3px;background:#5a7a9f;border-radius:50%;transition:.3s;}
+.sw input:checked+.sw-sl{background:rgba(0,245,255,.15);border-color:var(--c);}
+.sw input:checked+.sw-sl::before{transform:translateX(32px);background:var(--c);box-shadow:0 0 14px var(--c);}
+.volt-state{font-family:'Orbitron',monospace;font-size:20px;font-weight:900;letter-spacing:3px;min-width:40px;transition:all .3s;}
+.volt-state.on{color:var(--c);text-shadow:0 0 16px var(--c);}
+.volt-state.off{color:#5a7a9f;}
+.volt-desc{font-size:12px;color:#5a7a9f;text-align:center;letter-spacing:1px;min-height:20px;}
+
+/* ── PROX CONTROLS ── */
+.slider-row{display:flex;justify-content:space-between;font-family:'Orbitron',monospace;font-size:9px;letter-spacing:3px;color:#5a7a9f;margin-bottom:8px;}
+input[type=range]{width:100%;accent-color:var(--g);cursor:pointer;height:6px;margin-bottom:0;}
+.prox-readout{display:flex;justify-content:space-between;align-items:center;margin-top:16px;}
+.dist-big{font-family:'Orbitron',monospace;font-size:3.5rem;font-weight:900;color:var(--g);line-height:1;text-shadow:0 0 20px rgba(0,255,136,.4);}
+.dist-unit{font-family:'Orbitron',monospace;font-size:9px;color:#5a7a9f;letter-spacing:3px;margin-top:4px;}
+.det-badge{font-family:'Orbitron',monospace;padding:10px 20px;border-radius:20px;font-size:10px;letter-spacing:3px;font-weight:700;border:1px solid #1a3a5c;color:#5a7a9f;transition:all .3s;}
+.det-badge.yes{background:rgba(0,255,136,.12);border-color:var(--g);color:var(--g);box-shadow:0 0 24px rgba(0,255,136,.3);animation:detPulse 1s ease-in-out infinite;}
+@keyframes detPulse{0%,100%{box-shadow:0 0 24px rgba(0,255,136,.3);}50%{box-shadow:0 0 48px rgba(0,255,136,.6);}}
+
+/* ── IR CONTROLS ── */
+.ir-ctrl{display:flex;flex-direction:column;align-items:center;gap:16px;}
+.ir-msg{font-family:'Orbitron',monospace;font-size:12px;letter-spacing:2px;color:#5a7a9f;text-align:center;min-height:24px;transition:all .3s;}
+.ir-msg.go{color:var(--g);text-shadow:0 0 10px var(--g);}
+.fire-btn{
+  font-family:'Orbitron',monospace;
+  padding:18px 52px;border-radius:12px;border:2px solid var(--o);
+  background:linear-gradient(135deg,rgba(255,107,53,.18),rgba(255,107,53,.04));
+  color:var(--o);font-size:16px;font-weight:700;letter-spacing:3px;cursor:pointer;
+  transition:all .3s;position:relative;overflow:hidden;
+}
+.fire-btn::before{content:'';position:absolute;inset:0;background:linear-gradient(135deg,rgba(255,107,53,.3),transparent);opacity:0;transition:opacity .3s;}
+.fire-btn:hover::before{opacity:1;}
+.fire-btn:hover{box-shadow:0 0 40px rgba(255,107,53,.5);transform:scale(1.06);}
+.fire-btn:active{transform:scale(.97);}
+.fire-btn:disabled{opacity:.3;cursor:not-allowed;transform:none;box-shadow:none;}
+
+/* ── PROS CONS ── */
+.pc-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:10px;}
+.pc-box{border-radius:10px;padding:14px;}
+.pc-box.pros{background:rgba(0,255,136,.05);border:1px solid rgba(0,255,136,.15);}
+.pc-box.cons{background:rgba(255,107,53,.05);border:1px solid rgba(255,107,53,.15);}
+.pc-box h4{font-family:'Orbitron',monospace;font-size:9px;letter-spacing:3px;margin-bottom:8px;}
+.pc-box.pros h4{color:var(--g);}
+.pc-box.cons h4{color:#ff6b6b;}
+.pc-box p{font-size:12px;color:#7a9bbf;line-height:1.7;}
+
+/* ── TYPES GRID ── */
+.types-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px;}
+.type-box{background:rgba(0,245,255,.03);border:1px solid rgba(0,245,255,.1);border-radius:10px;padding:12px;}
+.type-box h4{font-family:'Orbitron',monospace;font-size:9px;letter-spacing:2px;color:var(--c);margin-bottom:6px;}
+.type-box p{font-size:12px;color:#7a9bbf;line-height:1.5;margin:0;}
+</style>
+</head>
+<body>
+<canvas id="stars"></canvas>
+
+<!-- ══ HOME ══ -->
+<div id="home" class="pg on">
+  <p class="home-kicker">BEEE · UNIT 4 · SENSOR LAB</p>
+  <h1 class="home-h1">SENSOR<br>LAB</h1>
+  <p class="home-sub">PICK A SENSOR. BREAK IT DOWN. HAVE FUN.</p>
+  <div class="card-row">
+    <div class="scard lcd" onclick="goTo('lcd')">
+      <span class="scard-emoji">🖥️</span>
+      <div class="scard-name">LCD</div>
+      <div class="scard-desc">Liquid crystals that twist light — the tech behind every screen you own</div>
+      <span class="scard-tag">MODULE 01</span>
+    </div>
+    <div class="scard prox" onclick="goTo('prox')">
+      <span class="scard-emoji">📡</span>
+      <div class="scard-name">PROXIMITY</div>
+      <div class="scard-desc">Detects objects without touching them — like a superpower for machines</div>
+      <span class="scard-tag">MODULE 02</span>
+    </div>
+    <div class="scard ir" onclick="goTo('ir')">
+      <span class="scard-emoji">🔴</span>
+      <div class="scard-name">IR SENSOR</div>
+      <div class="scard-desc">Invisible infrared light — your TV remote's secret weapon</div>
+      <span class="scard-tag">MODULE 03</span>
+    </div>
+  </div>
+</div>
+
+<!-- ══ LCD ══ -->
+<div id="lcd" class="mod">
+  <div style="width:100%;max-width:1200px;margin:0 auto;flex:1;display:flex;flex-direction:column;">
+    <div class="mhdr">
+      <button class="back-btn" onclick="goTo('home')">◀ HOME</button>
+      <div class="mtitle" style="color:var(--c);">🖥️ LCD</div>
+    </div>
+    <div class="mcontent">
+      <!-- LEFT -->
+      <div>
+        <div class="gc">
+          <div class="gc-title" style="color:var(--c)">WHAT IS AN LCD?</div>
+          <p>An LCD uses <span class="hl lcd-hl">liquid crystals</span> — molecules that twist or untwist when voltage is applied — to control whether light passes through or gets blocked.</p>
+          <p style="margin-top:10px">Sandwiched between two <span class="hl lcd-hl">polarizing filters</span>. Voltage OFF → crystals aligned → light passes → bright. Voltage ON → crystals untwist → <span class="hl lcd-hl">light blocked</span> → dark.</p>
+          <div class="fact fact-lcd"><div class="fact-lbl">⚡ WOW FACT</div><p>Every pixel on your phone does this ON/OFF switch <strong>thousands of times per second</strong> to form the image you see.</p></div>
+        </div>
+        <div class="gc">
+          <div class="gc-title" style="color:var(--c)">KEY CONCEPTS</div>
+          <ul class="kf kf-lcd">
+            <li>Combination of solid &amp; liquid states of matter</li>
+            <li>Works by <strong>blocking light</strong>, not emitting it</li>
+            <li>Uses polarizing filters + liquid crystal layer</li>
+            <li>Electrode made of indium-tin oxide (ITO)</li>
+            <li>Thinner &amp; lighter than CRT displays</li>
+            <li>Consumes microwatts vs milliwatts for LED</li>
+          </ul>
+        </div>
+        <div class="gc">
+          <div class="gc-title" style="color:var(--c)">PROS &amp; CONS</div>
+          <div class="pc-grid">
+            <div class="pc-box pros"><h4>✓ PROS</h4><p>Low power · Thin &amp; light · Low cost · Great contrast</p></div>
+            <div class="pc-box cons"><h4>✗ CONS</h4><p>Needs backlight · Limited temp · Slow response · Needs AC</p></div>
+          </div>
+        </div>
+      </div>
+      <!-- RIGHT -->
+      <div>
+        <div class="sim-box" id="lcdBox"><div class="sim-tag" id="lcdTag" style="color:var(--c)">VOLTAGE OFF — LIGHT PASSES</div></div>
+        <div class="gc">
+          <div class="gc-title" style="color:var(--c)">TOGGLE VOLTAGE</div>
+          <div class="volt-wrap">
+            <span class="volt-lbl">VOLTAGE</span>
+            <label class="sw"><input type="checkbox" id="vt" onchange="lcdToggle()"><span class="sw-sl"></span></label>
+            <span class="volt-state off" id="vv">OFF</span>
+          </div>
+          <div class="volt-desc" id="vd">Crystals aligned → polarized light passes → screen BRIGHT</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ PROXIMITY ══ -->
+<div id="prox" class="mod">
+  <div style="width:100%;max-width:1200px;margin:0 auto;flex:1;display:flex;flex-direction:column;">
+    <div class="mhdr">
+      <button class="back-btn" onclick="goTo('home')">◀ HOME</button>
+      <div class="mtitle" style="color:var(--g);">📡 PROXIMITY</div>
+    </div>
+    <div class="mcontent">
+      <div>
+        <div class="gc">
+          <div class="gc-title" style="color:var(--g)">WHAT IS A PROXIMITY SENSOR?</div>
+          <p>Detects <span class="hl prox-hl">nearby objects without physical contact</span> by emitting an electromagnetic field or radiation and watching for changes in the return signal.</p>
+          <div class="fact fact-prox"><div class="fact-lbl">⚡ WOW FACT</div><p>Your phone turns off its screen the instant you lift it to your ear — a proximity sensor does this in under <strong>10 milliseconds</strong>.</p></div>
+        </div>
+        <div class="gc">
+          <div class="gc-title" style="color:var(--g)">TYPES</div>
+          <div class="types-grid" style="--c:var(--g)">
+            <div class="type-box" style="border-color:rgba(0,255,136,.15)"><h4 style="color:var(--g)">INDUCTIVE</h4><p>Detects metal via eddy current losses in a magnetic field</p></div>
+            <div class="type-box" style="border-color:rgba(0,255,136,.15)"><h4 style="color:var(--g)">CAPACITIVE</h4><p>Detects any material via capacitance change</p></div>
+            <div class="type-box" style="border-color:rgba(0,255,136,.15)"><h4 style="color:var(--g)">MAGNETIC</h4><p>Reed contacts activated by a permanent magnet</p></div>
+            <div class="type-box" style="border-color:rgba(0,255,136,.15)"><h4 style="color:var(--g)">PHOTOELECTRIC</h4><p>Light beam interruption detection</p></div>
+          </div>
+        </div>
+        <div class="gc">
+          <div class="gc-title" style="color:var(--g)">REAL-WORLD USES</div>
+          <ul class="kf kf-prox">
+            <li>📱 Phone screen off near ear</li>
+            <li>🚰 Automatic faucets</li>
+            <li>🚗 Car parking sensors</li>
+            <li>✈️ Aircraft ground proximity warning</li>
+            <li>🎢 Roller coasters &amp; conveyor systems</li>
+          </ul>
+        </div>
+      </div>
+      <div>
+        <div class="sim-box" id="proxBox"><div class="sim-tag" id="proxTag" style="color:var(--g)">DRAG SLIDER TO MOVE OBJECT</div></div>
+        <div class="gc">
+          <div class="gc-title" style="color:var(--g)">MOVE OBJECT CLOSER</div>
+          <div class="slider-row"><span>FAR</span><span>← DRAG →</span><span>CLOSE</span></div>
+          <input type="range" id="ps" min="0" max="100" value="5" oninput="proxMove(this.value)" style="accent-color:var(--g)">
+          <div class="prox-readout">
+            <div><div class="dist-big" id="dn">95</div><div class="dist-unit">UNITS AWAY</div></div>
+            <div class="det-badge" id="db">● NOT DETECTED</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ IR ══ -->
+<div id="ir" class="mod">
+  <div style="width:100%;max-width:1200px;margin:0 auto;flex:1;display:flex;flex-direction:column;">
+    <div class="mhdr">
+      <button class="back-btn" onclick="goTo('home')">◀ HOME</button>
+      <div class="mtitle" style="color:var(--o);">🔴 IR SENSOR</div>
+    </div>
+    <div class="mcontent">
+      <div>
+        <div class="gc">
+          <div class="gc-title" style="color:var(--o)">WHAT IS AN IR SENSOR?</div>
+          <p>An electronic device that <span class="hl ir-hl">emits and/or detects infrared radiation</span> — light beyond the red end of the visible spectrum that human eyes cannot see.</p>
+          <div class="fact fact-ir"><div class="fact-lbl">⚡ WOW FACT</div><p>Your TV remote fires invisible IR pulses at <strong>38,000 Hz</strong>. Point it at your phone camera — you'll see it flash!</p></div>
+        </div>
+        <div class="gc">
+          <div class="gc-title" style="color:var(--o)">ACTIVE vs PASSIVE</div>
+          <div class="types-grid">
+            <div class="type-box" style="border-color:rgba(255,107,53,.2)"><h4 style="color:var(--o)">ACTIVE IR</h4><p>LED emitter + receiver. Detects objects by reflection. Used in robots.</p></div>
+            <div class="type-box" style="border-color:rgba(255,107,53,.2)"><h4 style="color:var(--o)">PASSIVE IR (PIR)</h4><p>Only detects IR. Uses pyroelectric material. Detects body heat.</p></div>
+          </div>
+        </div>
+        <div class="gc">
+          <div class="gc-title" style="color:var(--o)">HOW IT WORKS</div>
+          <ul class="kf kf-ir" style="--c:var(--o)">
+            <li style="--c:var(--o)"><strong style="color:var(--o)">Step 1</strong> LED emitter fires infrared beam</li>
+            <li><strong style="color:var(--o)">Step 2</strong> Beam travels invisibly through air</li>
+            <li><strong style="color:var(--o)">Step 3</strong> Beam reflects off target object</li>
+            <li><strong style="color:var(--o)">Step 4</strong> Receiver photodiode detects reflection</li>
+            <li><strong style="color:var(--o)">Step 5</strong> Signal processed → action triggered</li>
+          </ul>
+        </div>
+      </div>
+      <div>
+        <div class="sim-box" id="irBox"><div class="sim-tag" id="irTag" style="color:var(--o)">READY — PRESS FIRE</div></div>
+        <div class="gc">
+          <div class="gc-title" style="color:var(--o)">IR SIGNAL SIMULATION</div>
+          <div class="ir-ctrl">
+            <div class="ir-msg" id="irMsg">Press the button to fire an IR signal</div>
+            <button class="fire-btn" id="fireBtn" onclick="fireIR()">⚡ FIRE IR SIGNAL</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+// ══ STAR FIELD BG ══════════════════════════════════════════
+(function(){
+  const c=document.getElementById('stars');
+  const ctx=c.getContext('2d');
+  let W,H,stars=[];
+  function resize(){W=c.width=innerWidth;H=c.height=innerHeight;stars=[];for(let i=0;i<200;i++)stars.push({x:Math.random()*W,y:Math.random()*H,r:Math.random()*1.5+.3,s:Math.random()*.4+.1,o:Math.random()});}
+  resize(); window.addEventListener('resize',resize);
+  c.style.position='fixed';c.style.inset='0';c.style.zIndex='0';c.style.pointerEvents='none';
+  (function loop(){
+    ctx.clearRect(0,0,W,H);
+    stars.forEach(s=>{
+      s.o+=s.s*.01; if(s.o>1)s.o=0;
+      ctx.beginPath();ctx.arc(s.x,s.y,s.r,0,Math.PI*2);
+      ctx.fillStyle=`rgba(0,245,255,${s.o*.6})`;ctx.fill();
+    });
+    requestAnimationFrame(loop);
+  })();
+})();
+
+// ══ NAVIGATION ═════════════════════════════════════════════
+function goTo(id){
+  document.querySelectorAll('.pg,.mod').forEach(el=>{el.classList.remove('on');el.style.display='none';});
+  const t=document.getElementById(id);
+  if(!t)return;
+  t.style.display='flex';
+  void t.offsetWidth; // force reflow for animation
+  t.classList.add('on');
+  if(id==='lcd'&&!window._lcdDone)setTimeout(initLCD,60);
+  if(id==='prox'&&!window._proxDone)setTimeout(initProx,60);
+  if(id==='ir'&&!window._irDone)setTimeout(initIR,60);
+}
+
+// ══ LCD 3D ══════════════════════════════════════════════════
+let _lcdV=false,_lcdM=[],_lcdP=[];
+function initLCD(){
+  window._lcdDone=true;
+  const wrap=document.getElementById('lcdBox');
+  const W=wrap.clientWidth||600,H=wrap.clientHeight||300;
+  const sc=new THREE.Scene(),cam=new THREE.PerspectiveCamera(50,W/H,.1,100);
+  cam.position.set(0,1.5,13);
+  const ren=new THREE.WebGLRenderer({antialias:true,alpha:false});
+  ren.setPixelRatio(Math.min(devicePixelRatio,2));ren.setSize(W,H);ren.setClearColor(0x020810,1);
+  wrap.insertBefore(ren.domElement,wrap.firstChild);
+  // Polarizers
+  [-3.5,3.5].forEach(z=>{
+    const m=new THREE.Mesh(new THREE.PlaneGeometry(13,8.5),new THREE.MeshBasicMaterial({color:0x001a2e,transparent:true,opacity:.45,side:THREE.DoubleSide}));
+    m.position.z=z;sc.add(m);
+    const eg=new THREE.EdgesGeometry(new THREE.BoxGeometry(13,8.5,.01));
+    const lm=new THREE.LineSegments(eg,new THREE.LineBasicMaterial({color:0x00f5ff,transparent:true,opacity:.25}));
+    lm.position.z=z;sc.add(lm);
+  });
+  // Molecules
+  for(let x=-5.5;x<=5.5;x+=1.1)for(let y=-3;y<=3;y+=1.1){
+    const mesh=new THREE.Mesh(new THREE.CylinderGeometry(.06,.06,.9,8),new THREE.MeshPhongMaterial({color:0x00f5ff,emissive:0x002233}));
+    mesh.position.set(x,y,0);mesh.userData.ph=Math.random()*Math.PI*2;sc.add(mesh);_lcdM.push(mesh);
+  }
+  // Photons
+  for(let i=0;i<32;i++){
+    const ph=new THREE.Mesh(new THREE.SphereGeometry(.07,6,6),new THREE.MeshBasicMaterial({color:0xffee88,transparent:true,opacity:.9}));
+    ph.position.set((Math.random()-.5)*11,(Math.random()-.5)*7,-7);ph.userData.s=.05+Math.random()*.04;sc.add(ph);_lcdP.push(ph);
+  }
+  sc.add(new THREE.AmbientLight(0x112233,3));
+  const dl=new THREE.DirectionalLight(0x00f5ff,2);dl.position.set(4,6,6);sc.add(dl);
+  (function loop(){
+    requestAnimationFrame(loop);const t=Date.now()*.001;
+    _lcdM.forEach(m=>{
+      if(_lcdV){m.rotation.x+=(0-m.rotation.x)*.06;m.rotation.z+=(0-m.rotation.z)*.06;m.material.color.setHex(0xff4400);m.material.emissive.setHex(0x220800);}
+      else{const tg=Math.sin(t*.9+m.userData.ph)*.85;m.rotation.z+=(tg-m.rotation.z)*.05;m.rotation.x+=(tg*.4-m.rotation.x)*.05;m.material.color.setHex(0x00f5ff);m.material.emissive.setHex(0x002233);}
+    });
+    _lcdP.forEach(ph=>{
+      ph.position.z+=ph.userData.s;
+      if(_lcdV&&ph.position.z>-.8){ph.material.opacity=Math.max(0,ph.material.opacity-.08);if(ph.material.opacity<=0){ph.position.z=-7;ph.material.opacity=.9;ph.position.x=(Math.random()-.5)*11;ph.position.y=(Math.random()-.5)*7;}}
+      else ph.material.opacity=Math.min(.9,ph.material.opacity+.05);
+      if(ph.position.z>7){ph.position.z=-7;ph.position.x=(Math.random()-.5)*11;ph.position.y=(Math.random()-.5)*7;}
+    });
+    ren.render(sc,cam);
+  })();
+}
+function lcdToggle(){
+  _lcdV=document.getElementById('vt').checked;
+  document.getElementById('vv').textContent=_lcdV?'ON':'OFF';
+  document.getElementById('vv').className='volt-state '+(_lcdV?'on':'off');
+  document.getElementById('vd').textContent=_lcdV?'Crystals untwist → light BLOCKED → screen DARK':'Crystals aligned → light passes → screen BRIGHT';
+  document.getElementById('lcdTag').textContent=_lcdV?'VOLTAGE ON — LIGHT BLOCKED':'VOLTAGE OFF — LIGHT PASSES';
+}
+
+// ══ PROXIMITY 3D ════════════════════════════════════════════
+let _pObj,_pRings=[],_pSensor,_pVal=5;
+function initProx(){
+  window._proxDone=true;
+  const wrap=document.getElementById('proxBox');
+  const W=wrap.clientWidth||600,H=wrap.clientHeight||300;
+  const sc=new THREE.Scene(),cam=new THREE.PerspectiveCamera(50,W/H,.1,100);
+  cam.position.set(0,4,18);cam.lookAt(0,0,0);
+  const ren=new THREE.WebGLRenderer({antialias:true});
+  ren.setPixelRatio(Math.min(devicePixelRatio,2));ren.setSize(W,H);ren.setClearColor(0x020810,1);
+  wrap.insertBefore(ren.domElement,wrap.firstChild);
+  _pSensor=new THREE.Mesh(new THREE.CylinderGeometry(1,1,1.6,32),new THREE.MeshPhongMaterial({color:0x00ff88,emissive:0x003322,shininess:100}));
+  _pSensor.position.set(5.5,0,0);_pSensor.rotation.z=Math.PI/2;sc.add(_pSensor);
+  const face=new THREE.Mesh(new THREE.CircleGeometry(.85,32),new THREE.MeshBasicMaterial({color:0x00ff88,transparent:true,opacity:.8}));
+  face.position.set(4.7,0,0);face.rotation.y=Math.PI/2;sc.add(face);
+  for(let i=0;i<5;i++){
+    const r=new THREE.Mesh(new THREE.RingGeometry(1.5+i*1.4,1.65+i*1.4,64),new THREE.MeshBasicMaterial({color:0x00ff88,transparent:true,opacity:.08,side:THREE.DoubleSide}));
+    r.position.set(5.5,0,0);r.rotation.y=Math.PI/2;sc.add(r);_pRings.push(r);
+  }
+  _pObj=new THREE.Mesh(new THREE.BoxGeometry(1.5,1.5,1.5),new THREE.MeshPhongMaterial({color:0xff6b35,emissive:0x220800,shininess:70}));
+  _pObj.position.set(-6,0,0);sc.add(_pObj);
+  sc.add(new THREE.GridHelper(24,24,0x0a2040,0x0a2040));
+  sc.add(new THREE.AmbientLight(0x112233,2.5));
+  const dl=new THREE.DirectionalLight(0x00ff88,1.5);dl.position.set(5,8,5);sc.add(dl);
+  const dl2=new THREE.DirectionalLight(0xff6b35,1);dl2.position.set(-5,3,-5);sc.add(dl2);
+  (function loop(){
+    requestAnimationFrame(loop);const t=Date.now()*.001;
+    _pObj.rotation.y+=.015;_pObj.rotation.x+=.008;
+    _pRings.forEach((r,i)=>{r.material.opacity=.03+(Math.sin(t*2.5-i*.9)*.5+.5)*.28*(_pVal/100);r.scale.setScalar(1+.04*Math.sin(t*1.8+i));});
+    _pSensor.material.emissive.setHex(_pVal>70?0x00cc44:0x003322);
+    ren.render(sc,cam);
+  })();
+  proxMove(5);
+}
+function proxMove(v){
+  _pVal=parseInt(v);
+  if(_pObj)_pObj.position.x=-6+(_pVal/100)*9.8;
+  document.getElementById('dn').textContent=Math.round(100-_pVal);
+  const det=_pVal>70;
+  const b=document.getElementById('db');
+  b.textContent=det?'● DETECTED':'● NOT DETECTED';
+  b.className='det-badge'+(det?' yes':'');
+  document.getElementById('proxTag').textContent=det?'⚡ OBJECT DETECTED!':'DRAG SLIDER TO MOVE OBJECT';
+}
+
+// ══ IR 3D ═══════════════════════════════════════════════════
+let _irBusy=false,_irB=[],_irSc,_irRen,_irCam,_irE,_irR,_irT;
+function initIR(){
+  window._irDone=true;
+  const wrap=document.getElementById('irBox');
+  const W=wrap.clientWidth||600,H=wrap.clientHeight||300;
+  _irSc=new THREE.Scene();_irCam=new THREE.PerspectiveCamera(50,W/H,.1,100);
+  _irCam.position.set(0,3.5,16);_irCam.lookAt(0,0,0);
+  _irRen=new THREE.WebGLRenderer({antialias:true});
+  _irRen.setPixelRatio(Math.min(devicePixelRatio,2));_irRen.setSize(W,H);_irRen.setClearColor(0x020810,1);
+  wrap.insertBefore(_irRen.domElement,wrap.firstChild);
+  _irE=new THREE.Mesh(new THREE.BoxGeometry(1.1,2,1.1),new THREE.MeshPhongMaterial({color:0xff6b35,emissive:0x220800,shininess:90}));
+  _irE.position.set(-5.5,0,0);_irSc.add(_irE);
+  _irR=new THREE.Mesh(new THREE.BoxGeometry(1.1,2,1.1),new THREE.MeshPhongMaterial({color:0x00f5ff,emissive:0x002233,shininess:90}));
+  _irR.position.set(5.5,0,0);_irSc.add(_irR);
+  _irT=new THREE.Mesh(new THREE.SphereGeometry(.85,20,20),new THREE.MeshPhongMaterial({color:0x888888,emissive:0x111111,shininess:130}));
+  _irT.position.set(0,0,0);_irSc.add(_irT);
+  [['EMITTER',-5.5,-1.9,0xff6b35],['RECEIVER',5.5,-1.9,0x00f5ff],['TARGET',0,-1.5,0xaaaaaa]].forEach(([t,x,y,c])=>{
+    const cv=document.createElement('canvas');cv.width=256;cv.height=56;
+    const ctx=cv.getContext('2d');
+    ctx.fillStyle=`rgba(${(c>>16)&255},${(c>>8)&255},${c&255},.9)`;
+    ctx.font='bold 24px monospace';ctx.textAlign='center';ctx.fillText(t,128,38);
+    const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:new THREE.CanvasTexture(cv),transparent:true}));
+    sp.position.set(x,y,0);sp.scale.set(2.8,.65,1);_irSc.add(sp);
+  });
+  _irSc.add(new THREE.GridHelper(18,18,0x0a2040,0x0a2040));
+  _irSc.add(new THREE.AmbientLight(0x112233,2.5));
+  const dl=new THREE.DirectionalLight(0xffffff,1.3);dl.position.set(5,8,5);_irSc.add(dl);
+  (function loop(){
+    requestAnimationFrame(loop);
+    _irT.rotation.y+=.013;_irE.rotation.y=Math.sin(Date.now()*.0005)*.08;
+    _irB=_irB.filter(b=>{b.m.position.x+=b.vx;b.life--;b.m.material.opacity=Math.max(0,b.life/b.max);if(b.life<=0){_irSc.remove(b.m);return false;}return true;});
+    _irRen.render(_irSc,_irCam);
+  })();
+}
+function spawnB(fx,tx,col){
+  const m=new THREE.Mesh(new THREE.SphereGeometry(.14,6,6),new THREE.MeshBasicMaterial({color:col,transparent:true,opacity:1}));
+  m.position.set(fx,0,0);_irSc.add(m);const life=65;_irB.push({m,vx:(tx-fx)/life,life,max:life});
+}
+function fireIR(){
+  if(_irBusy)return;_irBusy=true;
+  const btn=document.getElementById('fireBtn'),msg=document.getElementById('irMsg');
+  btn.disabled=true;msg.textContent='📤 Firing IR beam...';msg.className='ir-msg go';
+  _irE.material.emissive.setHex(0xff4400);document.getElementById('irTag').textContent='IR BEAM TRANSMITTING...';
+  let n=0;const go=setInterval(()=>{spawnB(-4.8,0,0xff6b35);if(++n>14){clearInterval(go);
+    setTimeout(()=>{msg.textContent='🔄 Reflecting off target...';_irT.material.emissive.setHex(0x554400);
+      let n2=0;const ret=setInterval(()=>{spawnB(.5,5.2,0x00f5ff);if(++n2>14){clearInterval(ret);
+        setTimeout(()=>{_irR.material.emissive.setHex(0x00aa44);msg.textContent='✅ Signal received! Object detected.';document.getElementById('irTag').textContent='✅ SIGNAL DETECTED';
+          setTimeout(()=>{_irE.material.emissive.setHex(0x220800);_irR.material.emissive.setHex(0x002233);_irT.material.emissive.setHex(0x111111);msg.textContent='Press the button to fire an IR signal';msg.className='ir-msg';document.getElementById('irTag').textContent='READY — PRESS FIRE';btn.disabled=false;_irBusy=false;},1800);
+        },400);
+      }},38);
+    },600);
+  }},38);
+}
+</script>
+</body>
+</html>
